@@ -1,5 +1,7 @@
-FROM debian:latest
+FROM debian:bookworm
 
 RUN apt update && apt install -y php-fpm
 
-CMD ["php-fpm8.4", "-F"]
+COPY www.conf /etc/php/8.2/fpm/pool.d/.
+
+CMD ["php-fpm8.2", "-F"]
