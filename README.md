@@ -25,8 +25,6 @@ All services are isolated in their own containers, connected through a Docker ne
 ### Use of Docker
 Each service runs in a dedicated container built from a custom Dockerfile based on Debian Bookworm. No pre-built images are used (except the base OS). Docker Compose orchestrates all containers, volumes, and the network.
 
-### Virtual Machines vs Docker
-
 ### Virtual Machine vs Docker:
   # Virtual Machine:
     - Provides full hardware-level isolation
