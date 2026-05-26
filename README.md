@@ -26,25 +26,13 @@ All services are isolated in their own containers, connected through a Docker ne
 Each service runs in a dedicated container built from a custom Dockerfile based on Debian Bookworm. No pre-built images are used (except the base OS). Docker Compose orchestrates all containers, volumes, and the network.
 
 ### Virtual Machine vs Docker:
-  # Virtual Machine:
-    - Provides full hardware-level isolation
-    - Includes its own operating system kernel
-    - Usually consumes several gigabytes of storage
-    - Startup time is relatively slow (often minutes)
-    - Best suited for complete operating system isolation and virtualization
-
-  # Docker:
-    - Uses process-level isolation through Linux namespaces and cgroups
-    - Shares the host machine kernel instead of including its own
-    - Lightweight, usually only a few megabytes in size
-    - Starts almost instantly (typically seconds)
-    - Designed for lightweight application deployment and containerization
-
-  # Main Difference:
-    - A Virtual Machine emulates an entire operating system, while Docker containers only isolate applications and processes while sharing the host kernel.
-      This makes Docker significantly lighter and faster than traditional virtual machines.
-    - Docker containers share the host kernel and use Linux namespaces (PID, NET, MNT, UTS, IPC, USER) to isolate processes from each other.
-
+| | Virtual Machine | Docker |
+|---|---|---|
+| Isolation | Full hardware level | Process level (namespaces) |
+| Includes kernel | Yes | No — shares host kernel |
+| Size | GBs | MBs |
+| Startup | Minutes | Seconds |
+| Use case | Full OS isolation | Lightweight app isolation |
 ### Secrets vs Environment Variables
 
   # Environment Variables:
