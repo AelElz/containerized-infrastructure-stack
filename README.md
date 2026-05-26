@@ -44,7 +44,7 @@ Each service runs in a dedicated container built from a custom Dockerfile based 
 
 In this project, credentials are stored in a `.env` file (excluded from git) and passed to containers via `env_file` in Docker Compose.
 
-### Docker Network vs Host Network
+### Docker Network vs Host Network:
 | | Docker Network | Host Network |
 |---|---|---|
 | Isolation | Containers have their own network namespace | Container shares host network directly |
@@ -53,7 +53,7 @@ In this project, credentials are stored in a `.env` file (excluded from git) and
 
 A custom bridge network called `inception` is used. Containers communicate using their service names (e.g. `mariadb`, `wp-php`) as hostnames.
 
-### Docker Volumes vs Bind Mounts
+### Docker Volumes vs Bind Mounts:
 | | Named Volumes | Bind Mounts |
 |---|---|---|
 | Data location | Managed by Docker at defined path | Any host path |
