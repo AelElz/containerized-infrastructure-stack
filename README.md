@@ -33,63 +33,35 @@ Each service runs in a dedicated container built from a custom Dockerfile based 
 | Size | GBs | MBs |
 | Startup | Minutes | Seconds |
 | Use case | Full OS isolation | Lightweight app isolation |
-### Secrets vs Environment Variables
 
-  # Environment Variables:
-    - Commonly stored inside a .env file
-    - Accessible by processes running inside the container
-    - Mainly used for configuration values such as ports, usernames, or application settings
-    - Must be excluded from Git repositories using .gitignore
-
-  # Docker Secrets
-    - Stored separately inside dedicated secrets/ files
-    - Mounted into containers as secure files instead of regular environment variables
-    - Intended for sensitive information such as passwords, API keys, and database credentials
-    - Must also be excluded from Git repositories for security reasons
-    
-  # Main Difference
-    - Environment variables are simple and convenient for general configuration, while Docker Secrets provide a more secure method for handling sensitive credentials by limiting direct exposure inside containers.
+### Secrets vs Environment Variables:
+| | Environment Variables | Docker Secrets |
+|---|---|---|
+| Storage | `.env` file | `secrets/` files |
+| Visibility | Available to all container processes | Mounted as files, more secure |
+| Use case | Configuration values | Sensitive credentials |
+| Git safety | Must be in `.gitignore` | Must be in `.gitignore` |
 
 In this project, credentials are stored in a `.env` file (excluded from git) and passed to containers via `env_file` in Docker Compose.
 
 ### Docker Network vs Host Network
-  # Docker Network
-    - Containers run inside their own isolated network namespace
-    - Communication only happens through explicitly defined Docker networks
-    - Provides better security and isolation between services
-    - Required by the project subject
-  # Host Network
-    - Containers directly share the host machine network
-    - No network isolation between the host and the container
-    - Less secure because services are exposed directly
-    - Forbidden by the project subject
-  # Network Configuration in This Project
-    - Services communicate internally using their container names as hostnames, such as:
-        - mariadb
-        - wp-php
-        - nginx
-This allows the containers to communicate securely without exposing internal services directly to the host machine.
+| | Docker Network | Host Network |
+|---|---|---|
+| Isolation | Containers have their own network namespace | Container shares host network directly |
+| Security | Containers only communicate through defined network | No isolation |
+| Subject compliance | Required ✅ | Forbidden ❌ |
+
+A custom bridge network called `inception` is used. Containers communicate using their service names (e.g. `mariadb`, `wp-php`) as hostnames.
 
 ### Docker Volumes vs Bind Mounts
-  # Named Volumes
-    - Managed directly by Docker
-    - Stored in predefined Docker-managed locations
-    - Required by the project subject
-    - Data persists even after container removal
-    - Used for safer and cleaner data management
-  # Bind Mounts
-    - Directly map any host machine directory into a container
-    - Managed manually by the host system
-    - Forbidden by the project subject
-    - Data also persists after container removal
-    - Provides less abstraction and isolation than Docker volumes
-  # Volume Configuration in This Project
-    Two named Docker volumes are used:
-      - One volume for WordPress website files
-      - One volume for the MariaDB database
-  # Both volumes are stored inside:
-    /home/ael-azha/data/
-  This ensures persistent storage, meaning data remains available even if containers are stopped, removed, or rebuilt.
+| | Named Volumes | Bind Mounts |
+|---|---|---|
+| Data location | Managed by Docker at defined path | Any host path |
+| Subject compliance | Required ✅ | Forbidden ❌ |
+| Persistence | Survives container removal | Survives container removal |
+| Data path | `/home/ael-azha/data/` | Any path |
+
+Two named volumes are used: one for WordPress files and one for the MariaDB database, both stored at `/home/ael-azha/data/` on the host machine.
 
 ### Instructions
 
