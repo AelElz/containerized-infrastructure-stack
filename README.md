@@ -79,9 +79,9 @@ In this project, credentials are stored in a `.env` file (excluded from git) and
     - Forbidden by the project subject
   # Network Configuration in This Project
     - Services communicate internally using their container names as hostnames, such as:
-        + mariadb
-        + wp-php
-        + nginx
+        - mariadb
+        - wp-php
+        - nginx
 This allows the containers to communicate securely without exposing internal services directly to the host machine.
 
 ### Docker Volumes vs Bind Mounts
@@ -99,18 +99,19 @@ This allows the containers to communicate securely without exposing internal ser
     - Provides less abstraction and isolation than Docker volumes
   # Volume Configuration in This Project
     Two named Docker volumes are used:
-      + One volume for WordPress website files
-      + One volume for the MariaDB database
-  Both volumes are stored inside: /home/ael-azha/data/
+      - One volume for WordPress website files
+      - One volume for the MariaDB database
+  # Both volumes are stored inside:
+    /home/ael-azha/data/
   This ensures persistent storage, meaning data remains available even if containers are stopped, removed, or rebuilt.
 
-## Instructions
+### Instructions
 
-### Prerequisites
-- Docker and Docker Compose installed
-- A Virtual Machine running Linux (Debian/Ubuntu recommended)
+## Prerequisites
+    - Docker and Docker Compose installed
+    - A Virtual Machine running Linux (Debian/Ubuntu recommended)
 
-### Installation
+## Installation
 
 **1. Clone the repository:**
 ```bash
