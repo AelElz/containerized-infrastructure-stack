@@ -18,7 +18,12 @@ The infrastructure consists of three containers:
 - **WordPress + PHP-FPM** — the web application, communicating with NGINX via FastCGI
 - **MariaDB** — the database storing all WordPress data
 
+<img width="1400" height="729" alt="1_MiiTlPl89vwpv_bvFUjacQ" src="https://github.com/user-attachments/assets/de2e4197-6a6e-44f0-9991-62399962bd62" />
+
 All services are isolated in their own containers, connected through a Docker network, and their data persists through named Docker volumes.
+
+<img width="506" height="618" alt="Capture_dcran_2022-07-19__16 24 51" src="https://github.com/user-attachments/assets/85b0ab7a-d76f-490f-b39b-a26281ae1816" />
+
 
 ## Project Description
 
