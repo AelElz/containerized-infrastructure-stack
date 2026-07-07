@@ -16,7 +16,6 @@ DOCKER_COMPOSE	= docker compose -f $(COMPOSE_FILE)
 .DEFAULT_GOAL := up
 
 up:
-	@echo -e "$(CYAN)$(BOLD)Starting services...$(RESET)"
 	@mkdir -p $(DATA_DIR)/wordpress $(DATA_DIR)/mariadb
 	@$(DOCKER_COMPOSE) up --build -d
 	@echo -e "$(GREEN)✓ Services started successfully$(RESET)"
