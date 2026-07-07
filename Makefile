@@ -1,5 +1,5 @@
 COMPOSE_FILE = srcs/docker-compose.yml
-DATA_DIR = /home/ayoub/data
+DATA_DIR = /home/ael-azha/data
 
 all: makedirs
 	docker compose -f $(COMPOSE_FILE) up --build -d

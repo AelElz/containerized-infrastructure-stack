@@ -3,8 +3,8 @@ FROM debian:bookworm
 RUN apt update && apt install -y mariadb-server
 
 COPY conf/50-server.cnf /etc/mysql/mariadb.conf.d/.
-COPY tools/init.sql /etc/mysql/init.sql
+COPY tools/init-db.sh /usr/local/bin/init-db.sh
 
-RUN mkdir /run/mysqld && chown -R mysql:mysql /run/mysqld
+RUN mkdir /run/mysqld && chown -R mysql:mysql /run/mysqld && chmod +x /usr/local/bin/init-db.sh
 
-CMD ["mysqld"]
+CMD ["/usr/local/bin/init-db.sh"]

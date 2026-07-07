@@ -3,10 +3,12 @@
 chmod -R 777 /var/www/html
 cd /var/www/html
 
+DB_PASSWORD=$(cat /run/secrets/db_password)
+
 curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
 chmod +x wp-cli.phar
 
-until mysql -h mariadb -u ${MYSQL_USER} -p${MYSQL_PASSWORD} -e "SELECT 1;" > /dev/null 2>&1; do
+until mysql -h mariadb -u ${MYSQL_USER} -p${DB_PASSWORD} -e "SELECT 1;" > /dev/null 2>&1; do
     echo "Waiting for MariaDB..."
     sleep 2
 done
@@ -15,7 +17,7 @@ done
 ./wp-cli.phar config create \
     --dbname=${MYSQL_DATABASE} \
     --dbuser=${MYSQL_USER} \
-    --dbpass=${MYSQL_PASSWORD} \
+    --dbpass=${DB_PASSWORD} \
     --dbhost=mariadb \
     --allow-root
 
