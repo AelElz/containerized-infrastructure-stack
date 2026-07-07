@@ -1,129 +1,121 @@
 *This project has been created as part of the 42 curriculum by ael-azha.*
 
 # Inception
+
 ## Description
 
-Inception is a system administration project from the 42 curriculum.
-The project can run either inside a Virtual Machine (recommended for 42 evaluation) or directly on a Linux host machine.
+Inception is a system administration project from the 42 curriculum. The goal is to
+build a small, production-style web infrastructure entirely with Docker: every service
+runs in its own container, built from a custom Dockerfile written from scratch (no
+pre-built service images), and everything is orchestrated with Docker Compose behind
+a single Makefile entry point.
 
-Required tools:
-- Docker
-- Docker Compose
-- GNU Make
-- Git
-- Linux OS (Debian/Ubuntu recommended)
+The stack serves a WordPress site over HTTPS, backed by a MariaDB database, with NGINX
+as the sole entry point to the outside world:
 
-The infrastructure consists of three containers:
-- **NGINX** — the only entry point, serving HTTPS on port 443 with TLSv1.2/TLSv1.3
-- **WordPress + PHP-FPM** — the web application, communicating with NGINX via FastCGI
+- **NGINX** — the only exposed port, serving HTTPS on 443 with TLSv1.2/TLSv1.3
+- **WordPress + PHP-FPM** — the web application, talking to NGINX over FastCGI
 - **MariaDB** — the database storing all WordPress data
 
 <img width="1400" height="729" alt="1_MiiTlPl89vwpv_bvFUjacQ" src="https://github.com/user-attachments/assets/de2e4197-6a6e-44f0-9991-62399962bd62" />
 
-All services are isolated in their own containers, connected through a Docker network, and their data persists through named Docker volumes.
+All three containers are isolated from each other, communicate only through a private
+Docker network, and persist their data on the host through bind-mounted volumes so that
+data survives container recreation.
 
 <img width="506" height="618" alt="Capture_dcran_2022-07-19__16 24 51" src="https://github.com/user-attachments/assets/85b0ab7a-d76f-490f-b39b-a26281ae1816" />
 
+For day-to-day usage instructions, see [USER_DOC.md](USER_DOC.md).
+For setup, build, and container/volume management details, see [DEV_DOC.md](DEV_DOC.md).
 
 ## Project Description
 
-### Use of Docker:
-Each service runs in a dedicated container built from a custom Dockerfile based on Debian Bookworm. No pre-built images are used (except the base OS). Docker Compose orchestrates all containers, volumes, and the network.
+### Use of Docker and sources
 
-### Virtual Machine vs Docker:
+Each service (`nginx`, `wordpress`, `mariadb`) lives under `srcs/requirements/<service>/`
+with its own `Dockerfile`, built from the `debian:bookworm` base image — no ready-made
+NGINX/WordPress/MariaDB images are pulled. `srcs/docker-compose.yml` is what actually
+builds each of these Dockerfiles and wires the resulting containers together with a
+shared network, named volumes, environment variables, and secrets. The root
+[Makefile](Makefile) is the single command a user or evaluator runs (`make`) to prepare
+the host data directories and trigger `docker compose up --build`.
+
+### Virtual Machine vs Docker
+
 | | Virtual Machine | Docker |
 |---|---|---|
-| Isolation | Full hardware level | Process level (namespaces) |
-| Includes kernel | Yes | No — shares host kernel |
-| Size | GBs | MBs |
-| Startup | Minutes | Seconds |
-| Use case | Full OS isolation | Lightweight app isolation |
+| Isolation | Full hardware-level virtualization | Process-level isolation (namespaces + cgroups) |
+| Includes kernel | Yes, its own full kernel | No — shares the host kernel |
+| Image/disk size | Gigabytes | Megabytes |
+| Startup time | Minutes | Seconds |
+| Resource overhead | High (emulates full hardware) | Low (native processes, isolated) |
+| Use case | Full OS isolation, different kernels/OSes | Lightweight, reproducible app isolation |
 
-### Secrets vs Environment Variables:
-| | Environment Variables | Docker Secrets |
+We chose Docker (as required by the subject) because each service only needs process
+and filesystem isolation, not a full separate kernel — containers start in seconds and
+share the host's resources far more efficiently than a VM per service would.
+
+### Secrets vs Environment Variables
+
+| | Environment Variables (`.env`) | Docker Secrets (`secrets/`) |
 |---|---|---|
-| Storage | `.env` file | `secrets/` files |
-| Visibility | Available to all container processes | Mounted as files, more secure |
-| Use case | Configuration values | Sensitive credentials |
-| Git safety | Must be in `.gitignore` | Must be in `.gitignore` |
+| Storage | Plaintext file, loaded via `env_file:` | Plaintext file, mounted read-only at `/run/secrets/<name>` |
+| Visibility | Readable by any process in the container, and via `docker inspect` | Only visible as a file inside the container, not in `docker inspect` |
+| Best suited for | Non-sensitive configuration (domain, DB name, usernames) | Sensitive values (passwords) |
+| Subject requirement | Used for configuration | Required for passwords |
 
-In this project, credentials are stored in a `.env` file (excluded from git) and passed to containers via `env_file` in Docker Compose.
+In this project, non-sensitive configuration (`DOMAIN_NAME`, `MYSQL_DATABASE`,
+`MYSQL_USER`, WordPress usernames/emails, etc.) lives in `srcs/.env` and is passed to
+containers via `env_file`. The two database passwords are kept out of `.env` entirely
+and passed as Docker secrets (`secrets/db_password.txt`, `secrets/db_root_password.txt`),
+which the `mariadb` and `wordpress` containers read from `/run/secrets/` at startup
+instead of receiving them as environment variables.
 
-### Docker Network vs Host Network:
-| | Docker Network | Host Network |
+### Docker Network vs Host Network
+
+| | Docker (bridge) Network | Host Network |
 |---|---|---|
-| Isolation | Containers have their own network namespace | Container shares host network directly |
-| Security | Containers only communicate through defined network | No isolation |
-| Subject compliance | Required ✅ | Forbidden ❌ |
+| Isolation | Containers get their own network namespace | Container shares the host's network stack directly |
+| Inter-container communication | Via service name as hostname (Docker's internal DNS) | Via `localhost`, no isolation |
+| Security | Only explicitly published ports are reachable from outside | Every port a container binds is exposed on the host |
+| Subject compliance | Required | Forbidden |
 
-A custom bridge network called `inception` is used. Containers communicate using their service names (e.g. `mariadb`, `wp-php`) as hostnames.
+A custom bridge network called `inception` connects all three containers. They resolve
+each other by service name (e.g. WordPress reaches the database at `mariadb:3306`, NGINX
+reaches PHP-FPM at `wp-php:9000`) instead of relying on the host's network stack.
 
-### Docker Volumes vs Bind Mounts:
-| | Named Volumes | Bind Mounts |
+### Docker Volumes vs Bind Mounts
+
+| | Named Volumes (Docker-managed) | Bind Mounts (raw host path) |
 |---|---|---|
-| Data location | Managed by Docker at defined path | Any host path |
-| Subject compliance | Required ✅ | Forbidden ❌ |
-| Persistence | Survives container removal | Survives container removal |
-| Data path | `/home/ael-azha/data/` | Any path |
+| Location | Docker-chosen path under `/var/lib/docker/volumes/` | Any path you specify on the host |
+| Managed by | Docker CLI (`docker volume ls/inspect`) | Not tracked by Docker as an entity |
+| Subject requirement | A named volume must be used | — |
+| Data location requirement | Must physically live under `/home/<login>/data` | — |
 
-Two named volumes are used: one for WordPress files and one for the MariaDB database, both stored at `/home/ael-azha/data/` on the host machine.
+This project uses **named volumes configured as bind mounts** (`driver: local` with
+`driver_opts: {type: none, o: bind, device: ...}`) — the best of both: they show up as
+proper Docker volumes (`docker volume ls`), while the underlying data is guaranteed to
+live at a known, inspectable path on the host: `/home/ael-azha/data/wordpress` (WordPress
+files) and `/home/ael-azha/data/mariadb` (database files), exactly as the subject requires.
 
-### Instructions
+## Instructions
 
-## Prerequisites
-    - Docker and Docker Compose installed
-    - A Virtual Machine running Linux (Debian/Ubuntu recommended)
+See [DEV_DOC.md](DEV_DOC.md) for full setup-from-scratch instructions (prerequisites,
+`.env`/secrets configuration, build/launch, container and volume management) and
+[USER_DOC.md](USER_DOC.md) for how to use the running site once it's up.
 
-## Installation
+Quick start:
 
-**1. Clone the repository:**
 ```bash
 git clone git@github.com:AelElz/Inception-DevOps-.git
 cd Inception
-```
-
-**2. Create the `.env` file at `srcs/.env`:**
-```env
-DOMAIN_NAME=ael-azha.42.fr
-MYSQL_DATABASE=wordpress
-MYSQL_USER=user
-MYSQL_PASSWORD=yourpassword
-MYSQL_ROOT_PASSWORD=yourrootpassword
-WP_ADMIN_USER=ael-azha
-WP_ADMIN_PASSWORD=yourpassword
-WP_ADMIN_EMAIL=ael-azha@student.42.fr
-WP_USER=student
-WP_USER_PASSWORD=yourpassword
-WP_USER_EMAIL=student@student.42.fr
-```
-
-**3. Add the domain to `/etc/hosts`:**
-```bash
 echo "127.0.0.1 ael-azha.42.fr" | sudo tee -a /etc/hosts
-```
-
-**4. Build and start the project:**
-```bash
 make
 ```
 
-**5. Open your browser at:**
-https://ael-azha.42.fr
-
-**6. Accept the self-signed certificate warning and your WordPress site will be running**
-
-
-### Available Makefile Commands
-
-| Command | Action |
-|---|---|
-| `make` | Build images and start all containers |
-| `make down` | Stop all containers |
-| `make clean` | Stop containers and prune unused Docker resources |
-| `make fclean` | Full reset — removes all data, images, and volumes |
-| `make re` | Full clean then rebuild from scratch |
-| `make logs` | Show logs of all containers |
-| `make status` | Show running containers |
+Then open `https://ael-azha.42.fr` in a browser and accept the self-signed certificate
+warning.
 
 ## Resources
 
@@ -135,12 +127,19 @@ https://ael-azha.42.fr
 - [WordPress CLI (WP-CLI)](https://wp-cli.org/)
 - [PHP-FPM documentation](https://www.php.net/manual/en/install.fpm.php)
 - [Linux namespaces — man page](https://man7.org/linux/man-pages/man7/namespaces.7.html)
+- [Docker Secrets documentation](https://docs.docker.com/engine/swarm/secrets/)
 
 ### AI Usage
-Claude (claude.ai) was used throughout this project for:
-- Understanding Docker concepts (namespaces, cgroups, volumes, networks)
-- Debugging container errors by analyzing logs
-- Understanding configuration files (nginx, php-fpm, mariadb)
-- Explaining the difference between concepts required by the subject (VMs vs Docker, secrets vs env vars, etc.)
+Claude (claude.ai / Claude Code) was used throughout this project for:
+- Explaining Docker concepts (namespaces, cgroups, volumes, bridge networks) and how
+  they map onto the subject's requirements
+- Debugging container startup and permission errors by analyzing logs and process state
+- Explaining configuration file syntax (NGINX server blocks, PHP-FPM pool config,
+  MariaDB `.cnf` options) that was largely adapted from the distro's own defaults
+- Explaining the conceptual comparisons required by the subject (VMs vs Docker, secrets
+  vs environment variables, Docker network vs host network, volumes vs bind mounts)
+- Writing and structuring this project's documentation (`README.md`, `USER_DOC.md`,
+  `DEV_DOC.md`)
 
-All AI-generated content was reviewed, tested, and understood before being used in the project.
+All AI-assisted explanations and generated content were reviewed, tested against the
+running containers, and understood before being used in the project.
